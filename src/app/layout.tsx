@@ -33,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
+        suppressHydrationWarning={true}
         className={`${softServe.variable} ${poppins.variable} antialiased min-h-screen flex flex-col font-body`}
       >
         <AuthProvider>

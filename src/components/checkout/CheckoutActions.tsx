@@ -12,9 +12,10 @@ import { UserAddress } from "@/types/database";
 interface CheckoutActionsProps {
     address: UserAddress;
     saveAsDefault: boolean;
+    guestName?: string;
 }
 
-export function CheckoutActions({ address, saveAsDefault }: CheckoutActionsProps) {
+export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutActionsProps) {
     const { cart, shippingCost, clearCart } = useCart();
     const { user } = useAuth();
     const { updateAddress } = useUser();
@@ -31,35 +32,96 @@ export function CheckoutActions({ address, saveAsDefault }: CheckoutActionsProps
             return;
         }
 
+        // Validate Guest Name
+        if (!user && !guestName?.trim()) {
+            alert("Por favor, informe seu nome para identificação do pedido.");
+            return;
+        }
+
         setLoading(true);
 
         try {
+            console.log("Starting order placement...");
             let dbUserId: string | null = null;
-            let customerName = "Cliente";
+            let customerName = guestName || "Cliente";
 
             if (user?.email) {
+                console.log("User is logged in", user.id);
                 dbUserId = user.id; // UUID directly from AuthContext
 
                 // Try to get name from customer_users, fallback to email
-                const { data: userData } = await supabase
+                console.log("Fetching customer_users data...");
+                const { data: userData, error: userError } = await supabase
                     .from("customer_users")
                     .select("name")
                     .eq("id", user.id)
                     .single();
+
+                if (userError) console.warn("Error fetching user data (safe to ignore if new):", userError);
 
                 if (userData) {
                     customerName = userData.name;
                 } else {
                     customerName = user.email;
                 }
+                console.log("Customer name resolved:", customerName);
+
+                // ENSURE FLAGGED FIX: Check/Create user in customer_users table to satisfy FK constraint orders_user_id_fkey
+                // This is critical because orders.user_id references customer_users(id), not just auth.users
+                // ENSURE FLAGGED FIX: Check/Create user in customer_users table to satisfy FK constraint orders_user_id_fkey
+                console.log("Ensuring user exists in customer_users...");
+
+                // 1. Check if user exists
+                const { data: existingUser, error: fetchError } = await supabase
+                    .from("customer_users")
+                    .select("id")
+                    .eq("id", user.id)
+                    .maybeSingle(); // Use maybeSingle to not throw on null
+
+                if (fetchError) {
+                    console.error("Error checking customer_users:", fetchError);
+                    // Don't throw here, try to insert anyway as fallback
+                }
+
+                if (!existingUser) {
+                    console.log("User record missing in customer_users. Attempting INSERT...");
+                    const { error: insertError } = await supabase
+                        .from("customer_users")
+                        .insert({
+                            id: user.id,
+                            email: user.email,
+                            name: customerName,
+                        });
+
+                    if (insertError) {
+                        console.error("CRITICAL: Failed to create customer_users record:", JSON.stringify(insertError, null, 2));
+                        // If this fails, the order FK will definitely fail. Throw here to see this specific error.
+                        throw new Error(`Falha ao criar perfil do usuário: ${insertError.message}`);
+                    }
+                    console.log("User record created successfully.");
+                } else {
+                    console.log("User record already exists.");
+                }
             }
 
             // Sync address to user profile if logged in AND opted in
             if (user?.email && saveAsDefault) {
-                await updateAddress(address);
+                console.log("Saving address to profile...");
+                // Add specific timeout for address update to prevent hanging
+                const addressUpdatePromise = updateAddress(address);
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Address update timeout")), 5000));
+
+                try {
+                    await Promise.race([addressUpdatePromise, timeoutPromise]);
+                    console.log("Address saved.");
+                } catch (e) {
+                    console.error("Address save failed or timed out (continuing order):", e);
+                    // Do not block order placement for this
+                }
             }
 
             // 1. Create Order
+            console.log("Creating order object...");
             const { data: orderData, error: orderError } = await supabase
                 .from("orders")
                 .insert({
@@ -72,9 +134,14 @@ export function CheckoutActions({ address, saveAsDefault }: CheckoutActionsProps
                 .select()
                 .single();
 
-            if (orderError) throw orderError;
+            if (orderError) {
+                console.error("Order creation failed:", JSON.stringify(orderError, null, 2));
+                throw orderError;
+            }
+            console.log("Order created:", orderData.id);
 
             // 2. Create Order Items
+            console.log("Creating order items...");
             const orderItems = cart.map(item => ({
                 order_id: orderData.id,
                 product_id: item.id,
@@ -87,43 +154,55 @@ export function CheckoutActions({ address, saveAsDefault }: CheckoutActionsProps
                 .insert(orderItems);
 
             if (itemsError) throw itemsError;
+            console.log("Order items created.");
 
             // 3. Update Fidelity Points
             if (dbUserId) {
-                // Check current points
-                const { data: fidelityData } = await supabase
-                    .from("fidelity")
-                    .select("*")
-                    .eq("user_id", dbUserId)
-                    .single();
+                console.log("Updating fidelity points...");
+                try {
+                    // Check current points
+                    const { data: fidelityData } = await supabase
+                        .from("fidelity")
+                        .select("*")
+                        .eq("user_id", dbUserId)
+                        .single();
 
-                if (fidelityData) {
-                    await supabase
-                        .from("fidelity")
-                        .update({
-                            points: fidelityData.points + 1,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq("id", fidelityData.id);
-                } else {
-                    await supabase
-                        .from("fidelity")
-                        .insert({
-                            user_id: dbUserId,
-                            points: 1,
-                            free_cookie_earned: false
-                        });
+                    if (fidelityData) {
+                        await supabase
+                            .from("fidelity")
+                            .update({
+                                points: fidelityData.points + 1,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq("id", fidelityData.id);
+                    } else {
+                        // Use upsert to be safe against race conditions
+                        await supabase
+                            .from("fidelity")
+                            .upsert({
+                                user_id: dbUserId,
+                                points: 1,
+                                free_cookie_earned: false,
+                                updated_at: new Date().toISOString()
+                            }, { onConflict: 'user_id' });
+                    }
+                    console.log("Fidelity updated.");
+                } catch (fidelityErr) {
+                    console.error("Error updating fidelity (non-blocking):", fidelityErr);
                 }
             }
 
             // 4. Success
+            console.log("Order placement successful! Clearing cart and redirecting...");
             clearCart();
             router.push("/pedidos"); // Redirect to orders page
 
         } catch (error: any) {
-            console.error("Error placing order:", error);
-            alert(`Erro ao realizar o pedido: ${error?.message || "Erro desconhecido"}`);
+            console.error("Error placing order (raw):", error);
+            console.error("Error placing order (JSON):", JSON.stringify(error, null, 2));
+            alert(`Erro ao realizar o pedido: ${error?.message || JSON.stringify(error) || "Erro desconhecido"}`);
         } finally {
+            console.log("Finished order placement flow.");
             setLoading(false);
         }
     };
@@ -131,7 +210,7 @@ export function CheckoutActions({ address, saveAsDefault }: CheckoutActionsProps
     return (
         <div className="p-4">
             <p className="text-sm text-gray-500 text-center mb-4">
-                As opções de pagamento serão decididas nas próximas etapas.
+                O pagamento será combinado no momento da entrega via PIX ou Cartão.
             </p>
 
             <button

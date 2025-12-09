@@ -20,6 +20,8 @@ export default function CheckoutClient() {
         neighborhood: ""
     });
     const [saveAsDefault, setSaveAsDefault] = React.useState(false);
+    const [guestName, setGuestName] = React.useState("");
+
 
     // Update address if user logs in or user address loads
     React.useEffect(() => {
@@ -50,10 +52,27 @@ export default function CheckoutClient() {
 
                 {/* Fidelity Banner - Only for non-logged in users */}
                 {!user.id && (
-                    <div className="mb-6">
+                    <div className="mb-6 space-y-4">
                         <FidelityBanner />
+
+                        {/* Guest Name Input */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h2 className="text-xl font-body font-semibold text-gray-600 mb-4">Seus Dados</h2>
+                            <div>
+                                <label htmlFor="guestName" className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                                <input
+                                    type="text"
+                                    id="guestName"
+                                    value={guestName}
+                                    onChange={(e) => setGuestName(e.target.value)}
+                                    placeholder="Digite seu nome"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
                     </div>
                 )}
+
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {/* Left Column: Forms */}
@@ -79,7 +98,9 @@ export default function CheckoutClient() {
                     <CheckoutActions
                         address={currentAddress}
                         saveAsDefault={saveAsDefault}
+                        guestName={guestName}
                     />
+
                 </div>
             </div>
         </div>
