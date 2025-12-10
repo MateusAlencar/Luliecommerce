@@ -76,7 +76,8 @@ export default function OrdersClient() {
                         )
                     `)
                     .eq('user_id', user.id)
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .limit(20);
 
                 if (error) {
                     console.error('Error fetching orders:', error);
@@ -105,7 +106,7 @@ export default function OrdersClient() {
     );
 
     return (
-        <div className="min-h-screen bg-[#fffcf4] pt-32 pb-16 px-4 md:px-8 font-body">
+        <div className="min-h-screen bg-background pt-32 pb-16 px-4 md:px-8 font-body">
             <div className="max-w-4xl mx-auto">
                 <h1 className="text-3xl font-poppins font-bold text-[#8D61C6] mb-8">Meus Pedidos</h1>
 

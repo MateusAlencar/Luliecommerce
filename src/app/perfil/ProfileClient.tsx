@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import { SavedAddress } from "@/components/profile/SavedAddress";
 import { FidelityProgress } from "@/components/profile/FidelityProgress";
-import { PastOrders } from "@/components/profile/PastOrders";
 import { useUser } from "@/context/UserContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -23,7 +22,7 @@ export default function ProfileClient() {
     // Show loading while checking authentication
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#fffcf4] pt-32 pb-16 px-4 md:px-8 font-body flex items-center justify-center">
+            <div className="min-h-screen bg-background pt-32 pb-16 px-4 md:px-8 font-body flex items-center justify-center">
                 <div className="text-center">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-brand-purple"></div>
                     <p className="mt-4 text-gray-600">Carregando...</p>
@@ -38,7 +37,7 @@ export default function ProfileClient() {
     }
 
     return (
-        <div className="min-h-screen bg-[#fffcf4] pt-32 pb-16 px-4 md:px-8 font-body">
+        <div className="min-h-screen bg-background pt-32 pb-16 px-4 md:px-8 font-body">
             <div className="max-w-6xl mx-auto">
                 {/* Page Header */}
                 <div className="mb-8 flex justify-between items-start">
@@ -55,9 +54,6 @@ export default function ProfileClient() {
                     <div className="lg:col-span-2 space-y-4">
                         {/* Saved Address */}
                         <SavedAddress />
-
-                        {/* Past Orders */}
-                        <PastOrders />
                     </div>
 
                     {/* Right Column - 1/3 width */}

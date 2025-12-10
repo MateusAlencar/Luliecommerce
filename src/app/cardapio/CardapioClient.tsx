@@ -28,9 +28,9 @@ export default function CardapioClient({ products, categories }: CardapioClientP
     }, [products]);
 
     return (
-        <div className="min-h-screen bg-[#fffcf4] pb-24 pt-[152px] md:pt-[184px]">
+        <div className="min-h-screen bg-background pb-24 pt-[152px] md:pt-[184px]">
             {/* Content */}
-            <div className="max-w-md mx-auto px-4 flex flex-col gap-8">
+            <div className="max-w-md md:max-w-7xl mx-auto px-4 flex flex-col gap-8">
                 {categories.map((category) => {
                     const categoryProducts = productsByCategory[category.id] || [];
 
@@ -41,15 +41,15 @@ export default function CardapioClient({ products, categories }: CardapioClientP
                             {/* Category Title */}
                             <div className="flex items-center justify-start px-1">
                                 <h2 className={`font-body font-semibold text-left ${category.name === 'Cookies clássicos' || category.name === 'Cookies Clássicos'
-                                        ? 'text-2xl text-[#8D61C6]'
-                                        : 'text-xl text-[#4e4d4d]'
+                                    ? 'text-2xl text-[#8D61C6]'
+                                    : 'text-xl text-[#4e4d4d]'
                                     }`}>
                                     {category.name === 'Cookies clássicos' || category.name === 'Cookies Clássicos' ? 'Cardápio' : category.name}
                                 </h2>
                             </div>
 
                             {/* Products List */}
-                            <div className="flex flex-col gap-3">
+                            <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
                                 {categoryProducts.map((product) => (
                                     <MenuProductCard key={product.id} product={product} />
                                 ))}

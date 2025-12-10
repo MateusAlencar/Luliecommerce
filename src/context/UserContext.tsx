@@ -10,6 +10,7 @@ interface UserContextType {
     incrementPurchaseCount: () => void;
     addOrder: (order: Order) => void;
     hasFreeCookie: boolean;
+    refreshProfile: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -18,6 +19,7 @@ const DEFAULT_USER: UserProfile = {
     name: "Usuário",
     email: "usuario@luli.com",
     purchaseCount: 0,
+    free_cookie_earned: false,
     orders: [],
 };
 
@@ -39,39 +41,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // 2. Supabase Auth & Data Sync
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                if (session?.user?.email) {
-                    try {
-                        const { data: userData, error } = await supabase
-                            .from('customer_users')
-                            .select('*')
-                            .eq('id', session.user.id)
-                            .single();
-
-                        if (userData) {
-                            // Parse address from JSON string if it exists (it's already JSONB in types but let's be safe if it comes as string or object)
-                            let parsedAddress: UserAddress | undefined = undefined;
-                            if (userData.address) {
-                                try {
-                                    // if it's already an object (jsonb), use it, otherwise parse
-                                    parsedAddress = typeof userData.address === 'string'
-                                        ? JSON.parse(userData.address)
-                                        : userData.address;
-                                } catch (e) {
-                                    console.error("Error parsing address JSON:", e);
-                                }
-                            }
-                            setUser(prev => ({
-                                ...prev,
-                                id: userData.id,
-                                name: userData.name,
-                                email: userData.email,
-                                address: parsedAddress || prev.address,
-                                // purchaseCount & orders might need separate handling or DB tables
-                                // keeping them from local/prev state for now as per current scope
-                            }));
-                        }
-                    } catch (error) {
-                    }
+                if (session?.user?.id) {
+                    await fetchUserProfile(session.user.id);
                 }
             } else if (event === 'SIGNED_OUT') {
                 setUser(DEFAULT_USER);
@@ -129,10 +100,67 @@ export function UserProvider({ children }: { children: ReactNode }) {
         }));
     };
 
-    const hasFreeCookie = user.purchaseCount >= 5;
+    const hasFreeCookie = user.free_cookie_earned || user.purchaseCount >= 5;
+
+    const fetchUserProfile = async (userId: string) => {
+        try {
+            // 1. Fetch customer_users
+            const { data: userData } = await supabase
+                .from('customer_users')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            let parsedAddress: UserAddress | undefined = undefined;
+            if (userData) {
+                if (userData.address) {
+                    try {
+                        parsedAddress = typeof userData.address === 'string'
+                            ? JSON.parse(userData.address)
+                            : userData.address;
+                    } catch (e) {
+                        console.error("Error parsing address JSON:", e);
+                    }
+                }
+            }
+
+
+
+            // 2. Fetch fidelity
+            const { data: fidelityData } = await supabase
+                .from('fidelity')
+                .select('*')
+                .eq('user_id', userId)
+                .single();
+
+            setUser(prev => ({
+                ...prev,
+                ...(userData && {
+                    id: userData.id,
+                    name: userData.name,
+                    email: userData.email,
+                    address: parsedAddress || prev.address,
+                }),
+                ...(fidelityData && {
+                    purchaseCount: fidelityData.points,
+                    free_cookie_earned: fidelityData.free_cookie_earned,
+                })
+            }));
+
+        } catch (error) {
+            console.error("Error refreshing profile:", error);
+        }
+    };
+
+    const refreshProfile = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+            await fetchUserProfile(session.user.id);
+        }
+    };
 
     return (
-        <UserContext.Provider value={{ user, updateAddress, incrementPurchaseCount, addOrder, hasFreeCookie }}>
+        <UserContext.Provider value={{ user, updateAddress, incrementPurchaseCount, addOrder, hasFreeCookie, refreshProfile }}>
             {children}
         </UserContext.Provider>
     );
@@ -145,3 +173,4 @@ export function useUser() {
     }
     return context;
 }
+

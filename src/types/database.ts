@@ -6,69 +6,186 @@ export type Json =
     | { [key: string]: Json | undefined }
     | Json[]
 
-export interface Database {
+export type Database = {
     public: {
         Tables: {
-            products: {
+            categories: {
                 Row: {
+                    created_at: string | null
+                    description: string | null
                     id: number
                     name: string
-                    description: string | null
-                    price: number
-                    category_id: number
-                    created_at: string
-                    image_top_url: string | null
-                    image_front_url: string | null
                 }
                 Insert: {
+                    created_at?: string | null
+                    description?: string | null
                     id?: number
                     name: string
-                    description?: string | null
-                    price: number
-                    category_id: number
-                    created_at?: string
-                    image_top_url?: string | null
-                    image_front_url?: string | null
                 }
                 Update: {
+                    created_at?: string | null
+                    description?: string | null
                     id?: number
                     name?: string
-                    description?: string | null
-                    price?: number
-                    category_id?: number
-                    created_at?: string
-                    image_top_url?: string | null
-                    image_front_url?: string | null
+                }
+                Relationships: []
+            }
+            customer_users: {
+                Row: {
+                    address: Json | null
+                    created_at: string | null
+                    email: string | null
+                    id: string
+                    name: string | null
+                }
+                Insert: {
+                    address?: Json | null
+                    created_at?: string | null
+                    email?: string | null
+                    id: string
+                    name?: string | null
+                }
+                Update: {
+                    address?: Json | null
+                    created_at?: string | null
+                    email?: string | null
+                    id?: string
+                    name?: string | null
+                }
+                Relationships: []
+            }
+            enterprise_users: {
+                Row: {
+                    address: string | null
+                    created_at: string | null
+                    email: string | null
+                    id: string
+                    name: string | null
+                }
+                Insert: {
+                    address?: string | null
+                    created_at?: string | null
+                    email?: string | null
+                    id?: string
+                    name?: string | null
+                }
+                Update: {
+                    address?: string | null
+                    created_at?: string | null
+                    email?: string | null
+                    id?: string
+                    name?: string | null
+                }
+                Relationships: []
+            }
+            fidelity: {
+                Row: {
+                    free_cookie_earned: boolean
+                    id: number
+                    points: number
+                    updated_at: string
+                    user_id: string
+                }
+                Insert: {
+                    free_cookie_earned?: boolean
+                    id?: number
+                    points?: number
+                    updated_at?: string
+                    user_id: string
+                }
+                Update: {
+                    free_cookie_earned?: boolean
+                    id?: number
+                    points?: number
+                    updated_at?: string
+                    user_id?: string
                 }
                 Relationships: [
                     {
-                        foreignKeyName: "products_category_id_fkey"
-                        columns: ["category_id"]
-                        referencedRelation: "categories"
+                        foreignKeyName: "fidelity_user_id_fkey"
+                        columns: ["user_id"]
+                        isOneToOne: true
+                        referencedRelation: "customer_users"
                         referencedColumns: ["id"]
-                    }
+                    },
                 ]
             }
-            categories: {
+            order_items: {
                 Row: {
                     id: number
-                    name: string
-                    description: string | null
-                    created_at: string
+                    order_id: number
+                    price: number
+                    product_id: number
+                    quantity: number
                 }
                 Insert: {
                     id?: number
-                    name: string
-                    description?: string | null
-                    created_at?: string
+                    order_id: number
+                    price: number
+                    product_id: number
+                    quantity: number
                 }
                 Update: {
                     id?: number
-                    name?: string
-                    description?: string | null
-                    created_at?: string
+                    order_id?: number
+                    price?: number
+                    product_id?: number
+                    quantity?: number
                 }
-                Relationships: []
+                Relationships: [
+                    {
+                        foreignKeyName: "order_items_order_id_fkey"
+                        columns: ["order_id"]
+                        isOneToOne: false
+                        referencedRelation: "orders"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "order_items_product_id_fkey"
+                        columns: ["product_id"]
+                        isOneToOne: false
+                        referencedRelation: "products"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            orders: {
+                Row: {
+                    address: Json
+                    created_at: string
+                    customer_name: string
+                    id: number
+                    status: string
+                    total: number
+                    user_id: string | null
+                }
+                Insert: {
+                    address: Json
+                    created_at?: string
+                    customer_name: string
+                    id?: number
+                    status?: string
+                    total: number
+                    user_id?: string | null
+                }
+                Update: {
+                    address?: Json
+                    created_at?: string
+                    customer_name?: string
+                    id?: number
+                    status?: string
+                    total?: number
+                    user_id?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "orders_user_id_fkey"
+                        columns: ["user_id"]
+                        isOneToOne: false
+                        referencedRelation: "customer_users"
+                        referencedColumns: ["id"]
+                    },
+                ]
             }
             product_stock: {
                 Row: {
@@ -93,138 +210,51 @@ export interface Database {
                     {
                         foreignKeyName: "product_stock_product_id_fkey"
                         columns: ["product_id"]
+                        isOneToOne: false
                         referencedRelation: "products"
                         referencedColumns: ["id"]
-                    }
+                    },
                 ]
             }
-            orders: {
+            products: {
                 Row: {
-                    id: number
-                    customer_name: string
-                    total: number
+                    category_id: number
                     created_at: string
-                    user_id: string | null
-                    status: string
-                    address: Json
-                }
-                Insert: {
-                    id?: number
-                    customer_name: string
-                    total: number
-                    created_at?: string
-                    user_id?: string | null
-                    status: string
-                    address: Json
-                }
-                Update: {
-                    id?: number
-                    customer_name?: string
-                    total?: number
-                    created_at?: string
-                    user_id?: string | null
-                    status?: string
-                    address?: Json
-                }
-                Relationships: []
-            }
-            order_items: {
-                Row: {
+                    description: string | null
                     id: number
-                    order_id: number
-                    product_id: number
-                    quantity: number
+                    image_front_url: string | null
+                    image_top_url: string | null
+                    name: string
                     price: number
                 }
                 Insert: {
+                    category_id: number
+                    created_at?: string
+                    description?: string | null
                     id?: number
-                    order_id: number
-                    product_id: number
-                    quantity: number
+                    image_front_url?: string | null
+                    image_top_url?: string | null
+                    name: string
                     price: number
                 }
                 Update: {
+                    category_id?: number
+                    created_at?: string
+                    description?: string | null
                     id?: number
-                    order_id?: number
-                    product_id?: number
-                    quantity?: number
+                    image_front_url?: string | null
+                    image_top_url?: string | null
+                    name?: string
                     price?: number
                 }
                 Relationships: [
                     {
-                        foreignKeyName: "order_items_order_id_fkey"
-                        columns: ["order_id"]
-                        referencedRelation: "orders"
+                        foreignKeyName: "products_category_id_fkey"
+                        columns: ["category_id"]
+                        isOneToOne: false
+                        referencedRelation: "categories"
                         referencedColumns: ["id"]
                     },
-                    {
-                        foreignKeyName: "order_items_product_id_fkey"
-                        columns: ["product_id"]
-                        referencedRelation: "products"
-                        referencedColumns: ["id"]
-                    }
-                ]
-            }
-            customer_users: {
-                Row: {
-                    id: string
-                    name: string
-                    email: string
-                    address: Json | null
-                    created_at: string
-                }
-                Insert: {
-                    id: string
-                    name: string
-                    email: string
-                    address?: Json | null
-                    created_at?: string
-                }
-                Update: {
-                    id?: string
-                    name?: string
-                    email?: string
-                    address?: Json | null
-                    created_at?: string
-                }
-                Relationships: [
-                    {
-                        foreignKeyName: "customer_users_id_fkey"
-                        columns: ["id"]
-                        referencedRelation: "users"
-                        referencedColumns: ["id"]
-                    }
-                ]
-            }
-            fidelity: {
-                Row: {
-                    id: number
-                    user_id: string
-                    points: number
-                    free_cookie_earned: boolean
-                    updated_at: string
-                }
-                Insert: {
-                    id?: number
-                    user_id: string
-                    points?: number
-                    free_cookie_earned?: boolean
-                    updated_at?: string
-                }
-                Update: {
-                    id?: number
-                    user_id?: string
-                    points?: number
-                    free_cookie_earned?: boolean
-                    updated_at?: string
-                }
-                Relationships: [
-                    {
-                        foreignKeyName: "fidelity_user_id_fkey"
-                        columns: ["user_id"]
-                        referencedRelation: "users"
-                        referencedColumns: ["id"]
-                    }
                 ]
             }
         }
@@ -243,14 +273,16 @@ export interface Database {
     }
 }
 
+type PublicSchema = Database[Extract<keyof Database, "public">]
+
 export type Tables<
     PublicTableNameOrOptions extends
-    | keyof (Database["public"]["Tables"] & Database["public"]["Views"])
+    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
     | { schema: keyof Database },
     TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never = never
+    : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
     ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
@@ -258,10 +290,10 @@ export type Tables<
         }
     ? R
     : never
-    : PublicTableNameOrOptions extends keyof (Database["public"]["Tables"] &
-        Database["public"]["Views"])
-    ? (Database["public"]["Tables"] &
-        Database["public"]["Views"])[PublicTableNameOrOptions] extends {
+    : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
+        PublicSchema["Views"])
+    ? (PublicSchema["Tables"] &
+        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
             Row: infer R
         }
     ? R
@@ -270,19 +302,19 @@ export type Tables<
 
 export type TablesInsert<
     PublicTableNameOrOptions extends
-    | keyof Database["public"]["Tables"]
+    | keyof PublicSchema["Tables"]
     | { schema: keyof Database },
     TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never
+    : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
     ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
         Insert: infer I
     }
     ? I
     : never
-    : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
-    ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
+    : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
         Insert: infer I
     }
     ? I
@@ -291,19 +323,19 @@ export type TablesInsert<
 
 export type TablesUpdate<
     PublicTableNameOrOptions extends
-    | keyof Database["public"]["Tables"]
+    | keyof PublicSchema["Tables"]
     | { schema: keyof Database },
     TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never
+    : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
     ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
         Update: infer U
     }
     ? U
     : never
-    : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
-    ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
+    : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
         Update: infer U
     }
     ? U
@@ -312,15 +344,30 @@ export type TablesUpdate<
 
 export type Enums<
     PublicEnumNameOrOptions extends
-    | keyof Database["public"]["Enums"]
+    | keyof PublicSchema["Enums"]
     | { schema: keyof Database },
     EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
-    : never = never
+    : never = never,
 > = PublicEnumNameOrOptions extends { schema: keyof Database }
     ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-    : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
-    ? Database["public"]["Enums"][PublicEnumNameOrOptions]
+    : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
+    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+    PublicCompositeTypeNameOrOptions extends
+    | keyof PublicSchema["CompositeTypes"]
+    | { schema: keyof Database },
+    CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+        schema: keyof Database
+    }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+    ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+    : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
+    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 // Helper types for working with products
@@ -345,11 +392,11 @@ export interface CartItem extends ProductWithCategory {
 }
 
 export interface Order {
-    id: string;
+    id: number;
     date: string;
     items: CartItem[];
     total: number;
-    status: 'Entregue' | 'Em andamento' | 'Cancelado';
+    status: string;
     address: UserAddress;
 }
 
@@ -359,6 +406,7 @@ export interface UserProfile {
     email: string;
     address?: UserAddress;
     purchaseCount: number;
+    free_cookie_earned?: boolean;
     orders: Order[];
 }
 

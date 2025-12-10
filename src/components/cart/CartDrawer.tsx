@@ -13,7 +13,7 @@ export function CartDrawer() {
     // if (!isCartOpen) return null;
 
     return (
-        <div className={`fixed inset-0 z-[100] flex justify-end ${isCartOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
+        <div className={`fixed inset-0 z-[2000] flex justify-end ${isCartOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
             {/* Overlay */}
             <div
                 className={`absolute inset-0 bg-black/25 backdrop-blur-sm transition-opacity duration-500 ${isCartOpen ? "opacity-100" : "opacity-0"}`}

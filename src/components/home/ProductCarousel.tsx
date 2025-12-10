@@ -12,16 +12,22 @@ interface ProductCarouselProps {
 }
 
 export function ProductCarousel({ products, currentIndex = 0 }: ProductCarouselProps) {
-    const [isMobile, setIsMobile] = useState(false);
+    const [screenSize, setScreenSize] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
 
     useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
+        const checkScreen = () => {
+            if (window.innerWidth < 768) {
+                setScreenSize('mobile');
+            } else if (window.innerWidth < 1024) {
+                setScreenSize('tablet');
+            } else {
+                setScreenSize('desktop');
+            }
         };
 
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
+        checkScreen();
+        window.addEventListener("resize", checkScreen);
+        return () => window.removeEventListener("resize", checkScreen);
     }, []);
 
     const getProduct = (index: number) => {
@@ -40,47 +46,59 @@ export function ProductCarousel({ products, currentIndex = 0 }: ProductCarouselP
 
     const variants = {
         center: {
-            x: "0%",
-            y: 0,
+            x: screenSize === 'desktop' ? "10%" : "0%",
+            y: screenSize === 'desktop' ? -100 : 0,
+
             scale: 1.0,
             zIndex: 20,
             rotate: 0,
             opacity: 1,
             filter: "blur(0px)"
         },
-        left: {
-            x: isMobile ? "-60%" : "-80%",
-            y: isMobile ? 80 : 180,
-            scale: 0.6,
+        left: { // Previously "Previous" (Top-Left or Top in Arc)
+            x: screenSize === 'mobile' ? "-60%" : screenSize === 'tablet' ? "-55%" : "20%",
+            y: screenSize === 'mobile' ? 80 : screenSize === 'tablet' ? 120 : -550,
+
+            scale: screenSize === 'desktop' ? 0.6 : 0.6,
+
             zIndex: 10,
-            rotate: -25,
+            rotate: screenSize === 'desktop' ? -15 : -25,
             opacity: 1,
             filter: "blur(0px)"
         },
-        right: {
-            x: isMobile ? "60%" : "80%",
-            y: isMobile ? 80 : 180,
-            scale: 0.6,
+        right: { // Previously "Next" (Top-Right or Bottom in Arc)
+            x: screenSize === 'mobile' ? "60%" : screenSize === 'tablet' ? "55%" : "20%",
+            y: screenSize === 'mobile' ? 80 : screenSize === 'tablet' ? 120 : 350,
+
+            scale: screenSize === 'desktop' ? 0.6 : 0.6,
+
             zIndex: 10,
-            rotate: 25,
+            rotate: screenSize === 'desktop' ? 15 : 25,
             opacity: 1,
             filter: "blur(0px)"
         },
         hiddenLeft: {
-            x: isMobile ? "-100%" : "-150%",
-            y: 400,
+            // For desktop, this goes further UP and away
+            x: screenSize === 'mobile' ? "-100%" : screenSize === 'desktop' ? "40%" : "-150%",
+
+            y: screenSize === 'desktop' ? -900 : 400,
+
+
             scale: 0.4,
             zIndex: 0,
-            rotate: -45,
+            rotate: screenSize === 'desktop' ? -30 : -45,
             opacity: 0,
             filter: "blur(5px)"
         },
         hiddenRight: {
-            x: isMobile ? "100%" : "150%",
-            y: 400,
+            // For desktop, this goes further DOWN and away
+            x: screenSize === 'mobile' ? "100%" : screenSize === 'desktop' ? "40%" : "150%",
+            y: screenSize === 'desktop' ? 700 : 400,
+
+
             scale: 0.4,
             zIndex: 0,
-            rotate: 45,
+            rotate: screenSize === 'desktop' ? 30 : 45,
             opacity: 0,
             filter: "blur(5px)"
         }
@@ -94,7 +112,9 @@ export function ProductCarousel({ products, currentIndex = 0 }: ProductCarouselP
     return (
         <div className="relative w-full flex flex-col items-center">
             {/* Carousel Area */}
-            <div className="relative w-full h-[280px] md:h-[380px] flex items-center justify-center overflow-visible perspective-1000">
+            <div className={`relative w-full flex items-center justify-center overflow-visible perspective-1000
+                h-[280px] md:h-[350px] lg:h-[800px] 
+            `}>
                 {visibleIndices.map((index) => {
                     const product = getProduct(index);
                     const offset = index - currentIndex;
@@ -114,7 +134,8 @@ export function ProductCarousel({ products, currentIndex = 0 }: ProductCarouselP
                             }}
                             className="absolute top-0 flex items-center justify-center w-full h-full"
                         >
-                            <Link href={`/produto/${product.id}`} className="relative w-56 h-56 md:w-[300px] md:h-[300px] cursor-pointer" style={{ pointerEvents: offset === 0 ? 'auto' : 'none' }}>
+                            <Link href={`/produto/${product.id}`} className="relative w-56 h-56 md:w-[280px] md:h-[280px] lg:w-[380px] lg:h-[380px] cursor-pointer" style={{ pointerEvents: offset === 0 ? 'auto' : 'none' }}>
+
                                 <Image
                                     src={product.image_top_url || "/images/cookie-placeholder.png"}
                                     alt={product.name}

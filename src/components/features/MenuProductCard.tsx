@@ -18,23 +18,23 @@ export function MenuProductCard({ product }: MenuProductCardProps) {
     };
 
     return (
-        <div className="bg-white border border-[#efe3ff] rounded-[20px] p-3 md:p-4 flex gap-4 md:gap-6 items-center shadow-[0px_12px_26px_0px_rgba(0,0,0,0.05)] w-full">
+        <div className="bg-white border border-[#efe3ff] rounded-[20px] p-3 md:p-4 flex flex-row md:flex-col gap-4 md:gap-4 items-center md:items-start shadow-[0px_12px_26px_0px_rgba(0,0,0,0.05)] w-full h-full">
             {/* Image Container */}
-            <div className="relative w-[100px] h-[100px] shrink-0">
-                <div className="w-full h-full border border-[#efe3ff] rounded-[8px] shadow-[0px_6px_7px_0px_rgba(0,0,0,0.1)] overflow-hidden bg-white flex items-center justify-center">
+            <div className="relative w-[100px] h-[100px] md:w-full md:h-[240px] shrink-0">
+                <div className="w-full h-full border border-[#efe3ff] rounded-[8px] md:rounded-[12px] shadow-[0px_6px_7px_0px_rgba(0,0,0,0.1)] overflow-hidden bg-white flex items-center justify-center">
                     <Image
                         src={product.image_front_url || product.image_top_url || '/images/cookie-placeholder.png'}
                         alt={product.name}
                         fill
-                        className="object-cover rounded-[8px]"
+                        className="object-cover rounded-[8px] md:rounded-[12px]"
                     />
                 </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 flex flex-col justify-center py-1">
-                <div className="flex flex-col gap-1">
-                    <div className="flex justify-start items-center gap-2">
+            <div className="flex-1 flex flex-col justify-center py-1 w-full">
+                <div className="flex flex-col gap-1 w-full">
+                    <div className="flex justify-start items-center gap-2 md:justify-between w-full">
                         {/* Title */}
                         <h3 className="font-body font-semibold text-lg text-[#4e4d4d] leading-snug">
                             {product.name}
@@ -52,10 +52,10 @@ export function MenuProductCard({ product }: MenuProductCardProps) {
                     </p>
 
                     {/* View Product Button */}
-                    <div className="flex justify-start mt-2">
+                    <div className="flex justify-start mt-2 w-full">
                         <Link
                             href={`/produto/${product.id}`}
-                            className="bg-[#8D61C6] text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-sm hover:bg-brand-purple transition-colors"
+                            className="bg-[#8D61C6] text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-sm hover:bg-brand-purple transition-colors w-full md:w-auto text-center"
                         >
                             Ver produto
                         </Link>

@@ -18,7 +18,7 @@ interface CheckoutActionsProps {
 export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutActionsProps) {
     const { cart, shippingCost, clearCart } = useCart();
     const { user } = useAuth();
-    const { updateAddress } = useUser();
+    const { updateAddress, refreshProfile } = useUser();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
@@ -44,10 +44,27 @@ export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutA
             console.log("Starting order placement...");
             let dbUserId: string | null = null;
             let customerName = guestName || "Cliente";
+            let fidelityData = null;
+            let hasFreeCookie = false;
 
             if (user?.email) {
                 console.log("User is logged in", user.id);
-                dbUserId = user.id; // UUID directly from AuthContext
+                dbUserId = user.id;
+
+                // 0. Pre-fetch fidelity status to check for free cookie
+                try {
+                    const { data: fData } = await supabase
+                        .from("fidelity")
+                        .select("*")
+                        .eq("user_id", user.id)
+                        .single();
+                    fidelityData = fData;
+                    if (fidelityData?.free_cookie_earned) {
+                        hasFreeCookie = true;
+                    }
+                } catch (e) {
+                    console.warn("Error checking fidelity status:", e);
+                }
 
                 // Try to get name from customer_users, fallback to email
                 console.log("Fetching customer_users data...");
@@ -102,6 +119,11 @@ export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutA
                 } else {
                     console.log("User record already exists.");
                 }
+            }
+
+            // Append cookie info to name if applicable
+            if (hasFreeCookie) {
+                customerName += " (COOKIE GRÁTIS)";
             }
 
             // Sync address to user profile if logged in AND opted in
@@ -160,23 +182,47 @@ export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutA
             if (dbUserId) {
                 console.log("Updating fidelity points...");
                 try {
-                    // Check current points
-                    const { data: fidelityData } = await supabase
-                        .from("fidelity")
-                        .select("*")
-                        .eq("user_id", dbUserId)
-                        .single();
+                    // We already fetched fidelityData above, but let's re-use it or re-fetch if needed.
+                    // Actually we have fidelityData state from step 0.
 
                     if (fidelityData) {
-                        await supabase
-                            .from("fidelity")
-                            .update({
-                                points: fidelityData.points + 1,
-                                updated_at: new Date().toISOString()
-                            })
-                            .eq("id", fidelityData.id);
+                        if (hasFreeCookie) {
+                            // CONSUME COOKIE logic
+                            // Reset points to 1 (for this purchase), consume cookie flag
+                            await supabase
+                                .from("fidelity")
+                                .update({
+                                    points: 1,
+                                    free_cookie_earned: false,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq("id", fidelityData.id);
+                        } else {
+                            // EARN POINTS logic
+                            const newPoints = fidelityData.points + 1;
+                            if (newPoints >= 5) {
+                                // Hit target!
+                                await supabase
+                                    .from("fidelity")
+                                    .update({
+                                        points: 0, // Reset logic
+                                        free_cookie_earned: true,
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq("id", fidelityData.id);
+                            } else {
+                                // Just increment
+                                await supabase
+                                    .from("fidelity")
+                                    .update({
+                                        points: newPoints,
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq("id", fidelityData.id);
+                            }
+                        }
                     } else {
-                        // Use upsert to be safe against race conditions
+                        // First time creation
                         await supabase
                             .from("fidelity")
                             .upsert({
@@ -187,6 +233,9 @@ export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutA
                             }, { onConflict: 'user_id' });
                     }
                     console.log("Fidelity updated.");
+
+                    if (refreshProfile) await refreshProfile();
+
                 } catch (fidelityErr) {
                     console.error("Error updating fidelity (non-blocking):", fidelityErr);
                 }
