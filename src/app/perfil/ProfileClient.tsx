@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { SavedAddress } from "@/components/profile/SavedAddress";
 import { FidelityProgress } from "@/components/profile/FidelityProgress";
+import { ChangeNameCard } from "@/components/profile/ChangeNameCard";
 import { useUser } from "@/context/UserContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -52,6 +53,8 @@ export default function ProfileClient() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - 2/3 width */}
                     <div className="lg:col-span-2 space-y-4">
+                        {/* Change Name */}
+                        <ChangeNameCard />
                         {/* Saved Address */}
                         <SavedAddress />
                     </div>

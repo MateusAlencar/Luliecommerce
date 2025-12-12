@@ -77,7 +77,7 @@ export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutA
                 if (userError) console.warn("Error fetching user data (safe to ignore if new):", userError);
 
                 if (userData) {
-                    customerName = userData.name;
+                    customerName = userData.name || "Cliente";
                 } else {
                     customerName = user.email;
                 }

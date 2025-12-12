@@ -9,8 +9,10 @@ interface UserContextType {
     updateAddress: (address: UserAddress) => void;
     incrementPurchaseCount: () => void;
     addOrder: (order: Order) => void;
+    updateName: (name: string) => Promise<void>;
     hasFreeCookie: boolean;
     refreshProfile: () => Promise<void>;
+    isLoading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -25,20 +27,33 @@ const DEFAULT_USER: UserProfile = {
 
 export function UserProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Load user data from localStorage on mount and check Supabase auth
     useEffect(() => {
-        // 1. Local Storage
-        const storedUser = localStorage.getItem("luliUser");
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (e) {
-                console.error("Error loading user data:", e);
+        const initializeUser = async () => {
+            // 1. Local Storage
+            const storedUser = localStorage.getItem("luliUser");
+            if (storedUser) {
+                try {
+                    setUser(JSON.parse(storedUser));
+                } catch (e) {
+                    console.error("Error loading user data:", e);
+                }
             }
-        }
 
-        // 2. Supabase Auth & Data Sync
+            // 2. Initial Auth Check
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.id) {
+                await fetchUserProfile(session.user.id);
+            }
+
+            setIsLoading(false);
+        };
+
+        initializeUser();
+
+        // 3. Supabase Auth & Data Sync Listener
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 if (session?.user?.id) {
@@ -46,6 +61,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 }
             } else if (event === 'SIGNED_OUT') {
                 setUser(DEFAULT_USER);
+                localStorage.removeItem("luliUser");
             }
         });
 
@@ -56,8 +72,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     // Save user data to localStorage whenever it changes
     useEffect(() => {
-        localStorage.setItem("luliUser", JSON.stringify(user));
-    }, [user]);
+        if (!isLoading) {
+            // Only save if we are done loading to avoid overwriting with defaults prematurely? 
+            // Actually, saving DEFAULT_USER is fine if that's what we have.
+            localStorage.setItem("luliUser", JSON.stringify(user));
+        }
+    }, [user, isLoading]);
 
     const updateAddress = async (address: UserAddress) => {
         // 1. Update local state
@@ -82,6 +102,36 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     .select();
             } catch (error) {
                 console.error("Error updating address in Supabase:", error);
+            }
+        }
+    };
+
+    const updateName = async (name: string) => {
+        // 1. Update local state
+        setUser((prev) => ({
+            ...prev,
+            name,
+        }));
+
+        // 2. Update Supabase if logged in
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+            try {
+                // Ensure address is in correct format for DB if it exists
+                const dbAddress = user.address ? user.address : null;
+
+                await supabase
+                    .from('customer_users')
+                    .upsert({
+                        id: session.user.id,
+                        email: session.user.email!,
+                        name: name,
+                        address: dbAddress as any
+                    })
+                    .select();
+            } catch (error) {
+                console.error("Error updating name in Supabase:", error);
+                throw error;
             }
         }
     };
@@ -137,8 +187,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 ...prev,
                 ...(userData && {
                     id: userData.id,
-                    name: userData.name,
-                    email: userData.email,
+                    name: userData.name || "Usuário",
+                    email: userData.email || "",
                     address: parsedAddress || prev.address,
                 }),
                 ...(fidelityData && {
@@ -160,7 +210,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <UserContext.Provider value={{ user, updateAddress, incrementPurchaseCount, addOrder, hasFreeCookie, refreshProfile }}>
+        <UserContext.Provider value={{ user, updateAddress, updateName, incrementPurchaseCount, addOrder, hasFreeCookie, refreshProfile, isLoading }}>
             {children}
         </UserContext.Provider>
     );
