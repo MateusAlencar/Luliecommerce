@@ -7,7 +7,9 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useUser } from "@/context/UserContext";
 import { supabase } from "@/lib/supabase";
+import { CheckoutButton } from "@/components/checkout/CheckoutButton";
 import { UserAddress } from "@/types/database";
+import { useStoreSettings } from "@/context/StoreSettingsContext";
 
 interface CheckoutActionsProps {
     address: UserAddress;
@@ -19,6 +21,7 @@ export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutA
     const { cart, shippingCost, clearCart } = useCart();
     const { user } = useAuth();
     const { updateAddress, refreshProfile } = useUser();
+    const { isOpen } = useStoreSettings();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
@@ -26,6 +29,12 @@ export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutA
     const finalTotal = cartTotal + shippingCost;
 
     const handlePlaceOrder = async () => {
+        // 0. Security Check: Is Store Open?
+        if (!isOpen) {
+            alert("A loja está fechada no momento. Não é possível realizar pedidos.");
+            return;
+        }
+
         // Validate Address
         if (!address.street || !address.number || !address.neighborhood || !address.cep) {
             alert("Por favor, preencha o endereço de entrega completo.");
@@ -274,6 +283,13 @@ export function CheckoutActions({ address, saveAsDefault, guestName }: CheckoutA
                 <Link href="/cart" className="text-sm text-gray-500 hover:text-brand-purple underline">
                     Voltar para o carrinho
                 </Link>
+            </div>
+
+            <div className="mt-8 border-t border-gray-100 pt-6">
+                <p className="text-sm text-gray-500 text-center mb-4">
+                    Ou pague agora via Mercado Pago:
+                </p>
+                <CheckoutButton items={cart.map(item => ({ title: item.name, quantity: item.quantity, price: item.price }))} />
             </div>
         </div>
     );

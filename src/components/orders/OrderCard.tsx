@@ -17,9 +17,18 @@ interface OrderCardProps {
     status: string | null;
     total: number;
     items: OrderItem[];
+    address?: {
+        street: string;
+        number: string;
+        complement?: string;
+        neighborhood: string;
+        cep: string;
+        city?: string;
+        state?: string;
+    } | null;
 }
 
-export function OrderCard({ id, date, status, total, items }: OrderCardProps) {
+export function OrderCard({ id, date, status, total, items, address }: OrderCardProps) {
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('pt-BR', {
             day: '2-digit',
@@ -56,7 +65,13 @@ export function OrderCard({ id, date, status, total, items }: OrderCardProps) {
             <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-4">
                 <div>
                     <h3 className="font-poppins font-semibold text-[#8D61C6] text-lg">Pedido #{id}</h3>
-                    <p className="text-gray-500 text-sm">{formatDate(date)}</p>
+                    <p className="text-gray-500 text-sm mb-1">{formatDate(date)}</p>
+                    {address && (
+                        <p className="text-gray-500 text-sm">
+                            {address.street}, {address.number}
+                            {address.complement ? ` - ${address.complement}` : ''} - {address.neighborhood}
+                        </p>
+                    )}
                 </div>
                 <div className="flex flex-col items-end gap-2">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(status)}`}>

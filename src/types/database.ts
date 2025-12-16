@@ -257,6 +257,27 @@ export type Database = {
                     },
                 ]
             }
+            store_settings: {
+                Row: {
+                    id: number
+                    is_open: boolean
+                    updated_at: string
+                    updated_by: string | null
+                }
+                Insert: {
+                    id?: number
+                    is_open?: boolean
+                    updated_at?: string
+                    updated_by?: string | null
+                }
+                Update: {
+                    id?: number
+                    is_open?: boolean
+                    updated_at?: string
+                    updated_by?: string | null
+                }
+                Relationships: []
+            }
         }
         Views: {
             [_ in never]: never

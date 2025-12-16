@@ -25,6 +25,15 @@ interface Order {
     status: string | null;
     total: number;
     order_items: OrderItem[];
+    address: {
+        street: string;
+        number: string;
+        complement?: string;
+        neighborhood: string;
+        cep: string;
+        city?: string;
+        state?: string;
+    } | null;
 }
 
 // Fetcher function for SWR
@@ -36,6 +45,7 @@ const fetchOrders = async (userId: string) => {
             created_at,
             status,
             total,
+            address,
             order_items (
                 id,
                 quantity,
@@ -150,6 +160,7 @@ export default function OrdersClient() {
                                             status={order.status}
                                             total={order.total}
                                             items={order.order_items}
+                                            address={order.address}
                                         />
                                     ))}
                                 </div>
@@ -168,6 +179,7 @@ export default function OrdersClient() {
                                             status={order.status}
                                             total={order.total}
                                             items={order.order_items}
+                                            address={order.address}
                                         />
                                     ))}
                                 </div>

@@ -7,6 +7,8 @@ import { CartProvider } from "@/context/CartContext";
 import { UserProvider } from "@/context/UserContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { StoreSettingsProvider } from "@/context/StoreSettingsContext";
+import { StoreClosedOverlay } from "@/components/ui/StoreClosedOverlay";
 
 
 const softServe = localFont({
@@ -39,11 +41,14 @@ export default function RootLayout({
         <AuthProvider>
           <UserProvider>
             <CartProvider>
-              <Header />
-              <CartDrawer />
-              <main className="flex-grow">
-                {children}
-              </main>
+              <StoreSettingsProvider>
+                <StoreClosedOverlay />
+                <Header />
+                <CartDrawer />
+                <main className="flex-grow">
+                  {children}
+                </main>
+              </StoreSettingsProvider>
             </CartProvider>
           </UserProvider>
         </AuthProvider>
